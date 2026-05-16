@@ -26,6 +26,7 @@ export function QuestActionButtons({
   compact = false
 }: QuestActionButtonsProps) {
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isForfeiting, setIsForfeiting] = useState(false);
 
   return (
     <>
@@ -81,10 +82,16 @@ export function QuestActionButtons({
               >
                 Cancel
               </Button>
-              <form action={forfeitQuestAction}>
+              <form
+                action={forfeitQuestAction}
+                onSubmit={() => {
+                  setIsForfeiting(true);
+                  setIsConfirming(false);
+                }}
+              >
                 <input type="hidden" name="quest_id" value={questId} />
-                <Button type="submit" variant="outline">
-                  Confirm Forfeit
+                <Button type="submit" variant="outline" disabled={isForfeiting}>
+                  {isForfeiting ? "Forfeiting..." : "Confirm Forfeit"}
                 </Button>
               </form>
             </div>

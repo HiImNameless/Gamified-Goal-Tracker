@@ -1,4 +1,5 @@
 import { Check, Clock, Flame, Search, UserPlus, X } from "lucide-react";
+import Link from "next/link";
 import {
   acceptFriendRequestAction,
   rejectFriendRequestAction,
@@ -116,8 +117,8 @@ function FriendCard({ friend }: { friend: FriendConnection }) {
   const counts = friend.activeQuestCounts ?? { main: 0, side: 0, boss: 0 };
 
   return (
-    <button
-      type="button"
+    <Link
+      href={`/friends/${friend.profile.id}`}
       className="group w-full rounded-lg border border-border bg-card/80 p-4 text-left transition hover:border-primary/50 hover:shadow-glow"
       aria-label={`Open ${friend.profile.displayName}'s profile`}
     >
@@ -159,7 +160,7 @@ function FriendCard({ friend }: { friend: FriendConnection }) {
           </div>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }
 

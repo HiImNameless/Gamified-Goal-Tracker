@@ -8,6 +8,7 @@ export type QuestStatus =
   | "pending_verification"
   | "completed"
   | "failed"
+  | "forfeited"
   | "abandoned"
   | "expired";
 
@@ -79,6 +80,7 @@ export interface UserProgress {
   userId: string;
   rankTier: number;
   lp: number;
+  trackedQuestId?: string;
   totalXp: number;
   completedQuests: number;
   failedQuests: number;

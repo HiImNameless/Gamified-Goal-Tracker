@@ -33,6 +33,7 @@ export function mapUserProgress(row: ProgressRow): UserProgress {
     userId: row.user_id,
     rankTier: row.rank_tier,
     lp: row.lp,
+    trackedQuestId: row.tracked_quest_id ?? undefined,
     totalXp: row.total_xp,
     completedQuests: row.completed_quests,
     failedQuests: row.failed_quests,

@@ -41,6 +41,7 @@ export type Database = {
           user_id: string;
           rank_tier: number;
           lp: number;
+          tracked_quest_id: string | null;
           total_xp: number;
           completed_quests: number;
           failed_quests: number;
@@ -53,6 +54,7 @@ export type Database = {
           user_id: string;
           rank_tier?: number;
           lp?: number;
+          tracked_quest_id?: string | null;
           total_xp?: number;
           completed_quests?: number;
           failed_quests?: number;
@@ -65,6 +67,7 @@ export type Database = {
           user_id?: string;
           rank_tier?: number;
           lp?: number;
+          tracked_quest_id?: string | null;
           total_xp?: number;
           completed_quests?: number;
           failed_quests?: number;
@@ -140,6 +143,7 @@ export type Database = {
             | "pending_verification"
             | "completed"
             | "failed"
+            | "forfeited"
             | "abandoned"
             | "expired";
           skill_category:
@@ -180,6 +184,7 @@ export type Database = {
             | "pending_verification"
             | "completed"
             | "failed"
+            | "forfeited"
             | "abandoned"
             | "expired";
           skill_category?:
@@ -389,6 +394,7 @@ export type Database = {
         | "pending_verification"
         | "completed"
         | "failed"
+        | "forfeited"
         | "abandoned"
         | "expired";
       quest_type: "main" | "side" | "boss";

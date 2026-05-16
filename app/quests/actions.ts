@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { LIFE_CATEGORIES } from "@/lib/life-categories";
-import { completeQuestForUser } from "@/lib/quest-completion";
+import { completeQuestForUser, forfeitQuestForUser } from "@/lib/quest-completion";
 import { LP_BY_DIFFICULTY } from "@/lib/ranks";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -230,6 +230,91 @@ export async function toggleCriteriaAction(formData: FormData) {
   revalidatePath(`/quests/${questId}`);
 }
 
+export async function updateCriteriaAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = createClient();
+  const questId = String(formData.get("quest_id") ?? "");
+
+  if (!questId) {
+    return;
+  }
+
+  const { data: quest } = await supabase
+    .from("quests")
+    .select("id, status, proof_required")
+    .eq("id", questId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!quest || quest.status !== "active") {
+    return;
+  }
+
+  const ids = formData.getAll("criteria_id").map((value) => String(value));
+  const counts = formData
+    .getAll("criteria_current_count")
+    .map((value) => Math.max(0, Number(value) || 0));
+
+  if (ids.length === 0) {
+    return;
+  }
+
+  const { data: criteriaRows, error: criteriaError } = await supabase
+    .from("quest_criteria")
+    .select("id, type, target_count")
+    .eq("quest_id", questId)
+    .in("id", ids);
+
+  if (criteriaError) {
+    throw new Error(criteriaError.message);
+  }
+
+  const now = new Date().toISOString();
+  const updates = (criteriaRows ?? []).map((criterion) => {
+    const index = ids.indexOf(criterion.id);
+    const nextCount = Math.min(
+      criterion.target_count,
+      Math.max(0, counts[index] ?? 0)
+    );
+    const isCompleted = nextCount >= criterion.target_count;
+
+    return supabase
+      .from("quest_criteria")
+      .update({
+        current_count: nextCount,
+        is_completed: isCompleted,
+        completed_at: isCompleted ? now : null
+      })
+      .eq("id", criterion.id)
+      .eq("quest_id", questId);
+  });
+
+  const updateResults = await Promise.all(updates);
+  const updateError = updateResults.find((result) => result.error)?.error;
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  const { data: allCriteria } = await supabase
+    .from("quest_criteria")
+    .select("is_completed")
+    .eq("quest_id", questId);
+
+  const allComplete =
+    (allCriteria ?? []).length > 0 &&
+    (allCriteria ?? []).every((criterion) => criterion.is_completed);
+
+  if (allComplete && !quest.proof_required) {
+    await completeQuestForUser(user.id, questId);
+    revalidatePath("/");
+    redirect("/");
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/quests/${questId}`);
+}
+
 export async function submitProofAction(formData: FormData) {
   const user = await requireUser();
   const supabase = createClient();
@@ -347,5 +432,60 @@ export async function completeQuestAction(formData: FormData) {
   await completeQuestForUser(user.id, questId);
 
   revalidatePath("/");
+  redirect("/");
+}
+
+export async function toggleTrackedQuestAction(formData: FormData) {
+  const user = await requireUser();
+  const questId = String(formData.get("quest_id") ?? "");
+  const shouldTrack = String(formData.get("should_track") ?? "") === "true";
+
+  if (!questId) {
+    return;
+  }
+
+  const supabase = createClient();
+
+  if (shouldTrack) {
+    const { data: quest } = await supabase
+      .from("quests")
+      .select("id, status")
+      .eq("id", questId)
+      .eq("owner_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!quest) {
+      return;
+    }
+  }
+
+  const { error } = await supabase
+    .from("user_progress")
+    .update({
+      tracked_quest_id: shouldTrack ? questId : null
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/quests/${questId}`);
+}
+
+export async function forfeitQuestAction(formData: FormData) {
+  const user = await requireUser();
+  const questId = String(formData.get("quest_id") ?? "");
+
+  if (!questId) {
+    return;
+  }
+
+  await forfeitQuestForUser(user.id, questId);
+
+  revalidatePath("/");
+  revalidatePath(`/quests/${questId}`);
   redirect("/");
 }

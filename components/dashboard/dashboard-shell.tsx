@@ -36,16 +36,20 @@ export function DashboardShell({
   const activeQuests = quests.filter((quest) =>
     ["active", "pending_verification"].includes(quest.status)
   );
-  const completedQuests = quests
-    .filter((quest) => quest.status === "completed")
+  const recentOutcomes = quests
+    .filter((quest) => ["completed", "failed", "forfeited"].includes(quest.status))
     .sort((a, b) => {
-      const aTime = new Date(a.completedAt ?? a.updatedAt).getTime();
-      const bTime = new Date(b.completedAt ?? b.updatedAt).getTime();
+      const aTime = new Date(a.completedAt ?? a.failedAt ?? a.updatedAt).getTime();
+      const bTime = new Date(b.completedAt ?? b.failedAt ?? b.updatedAt).getTime();
       return bTime - aTime;
     })
     .slice(0, 4);
-  const mainQuests = activeQuests.filter((quest) => quest.type === "main");
-  const sideQuests = activeQuests.filter((quest) => quest.type === "side");
+  const trackedQuest = activeQuests.find((quest) => quest.id === progress.trackedQuestId);
+  const visibleActiveQuests = trackedQuest
+    ? activeQuests.filter((quest) => quest.id !== trackedQuest.id)
+    : activeQuests;
+  const mainQuests = visibleActiveQuests.filter((quest) => quest.type === "main");
+  const sideQuests = visibleActiveQuests.filter((quest) => quest.type === "side");
 
   return (
     <div className="flex min-h-screen">
@@ -89,14 +93,35 @@ export function DashboardShell({
               </div>
             </header>
 
+            {trackedQuest ? (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Tracked Quest</h2>
+                  <Badge tone="warning">Focus Target</Badge>
+                </div>
+                <QuestCard
+                  quest={trackedQuest}
+                  isTracked
+                  canManage
+                />
+              </section>
+            ) : null}
+
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Active Main Quests</h2>
                 <Badge tone="muted">Campaign Goals</Badge>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4">
                 {mainQuests.length > 0 ? (
-                  mainQuests.map((quest) => <QuestCard key={quest.id} quest={quest} />)
+                  mainQuests.map((quest) => (
+                    <QuestCard
+                      key={quest.id}
+                      quest={quest}
+                      isTracked={progress.trackedQuestId === quest.id}
+                      canManage
+                    />
+                  ))
                 ) : (
                   <EmptyQuestState label="No main quests yet." />
                 )}
@@ -108,9 +133,16 @@ export function DashboardShell({
                 <h2 className="text-lg font-semibold">Side Quests</h2>
                 <Badge tone="muted">Quick Wins</Badge>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4">
                 {sideQuests.length > 0 ? (
-                  sideQuests.map((quest) => <QuestCard key={quest.id} quest={quest} />)
+                  sideQuests.map((quest) => (
+                    <QuestCard
+                      key={quest.id}
+                      quest={quest}
+                      isTracked={progress.trackedQuestId === quest.id}
+                      canManage
+                    />
+                  ))
                 ) : (
                   <EmptyQuestState label="No side quests yet." />
                 )}
@@ -119,16 +151,21 @@ export function DashboardShell({
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Recently Completed</h2>
-                <Badge tone="muted">Victory Log</Badge>
+                <h2 className="text-lg font-semibold">Recent Outcomes</h2>
+                <Badge tone="muted">Quest Log</Badge>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {completedQuests.length > 0 ? (
-                  completedQuests.map((quest) => (
-                    <QuestCard key={quest.id} quest={quest} />
+              <div className="grid gap-4">
+                {recentOutcomes.length > 0 ? (
+                  recentOutcomes.map((quest) => (
+                    <QuestCard
+                      key={quest.id}
+                      quest={quest}
+                      isTracked={progress.trackedQuestId === quest.id}
+                      canManage
+                    />
                   ))
                 ) : (
-                  <EmptyQuestState label="No completed quests yet." />
+                  <EmptyQuestState label="No quest outcomes yet." />
                 )}
               </div>
             </section>

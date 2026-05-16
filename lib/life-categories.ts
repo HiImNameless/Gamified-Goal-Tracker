@@ -15,25 +15,29 @@ export const lifeCategoryColors: Record<
     border: string;
     bg: string;
     ring: string;
+    glow: string;
   }
 > = {
   health: {
     text: "text-emerald-300",
     border: "border-emerald-400/35",
     bg: "bg-emerald-400/10",
-    ring: "#34d399"
+    ring: "#34d399",
+    glow: "shadow-[0_0_38px_rgba(52,211,153,0.42)]"
   },
   wealth: {
     text: "text-amber-300",
     border: "border-amber-400/35",
     bg: "bg-amber-400/10",
-    ring: "#fbbf24"
+    ring: "#fbbf24",
+    glow: "shadow-[0_0_38px_rgba(251,191,36,0.42)]"
   },
   social: {
     text: "text-sky-300",
     border: "border-sky-400/35",
     bg: "bg-sky-400/10",
-    ring: "#38bdf8"
+    ring: "#38bdf8",
+    glow: "shadow-[0_0_38px_rgba(56,189,248,0.42)]"
   }
 };
 

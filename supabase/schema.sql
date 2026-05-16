@@ -8,6 +8,7 @@ create type public.quest_status as enum (
   'pending_verification',
   'completed',
   'failed',
+  'forfeited',
   'abandoned',
   'expired'
 );
@@ -53,6 +54,7 @@ create table public.user_progress (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   rank_tier integer not null default 0 check (rank_tier between 0 and 30),
   lp integer not null default 0 check (lp >= 0 and lp <= 100),
+  tracked_quest_id uuid,
   total_xp integer not null default 0 check (total_xp >= 0),
   completed_quests integer not null default 0 check (completed_quests >= 0),
   failed_quests integer not null default 0 check (failed_quests >= 0),

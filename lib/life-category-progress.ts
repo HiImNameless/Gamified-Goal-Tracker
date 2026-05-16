@@ -1,6 +1,7 @@
 import {
   LIFE_CATEGORIES,
   LIFE_CATEGORY_COMPLETION_POINTS,
+  LIFE_CATEGORY_FAILURE_POINTS,
   clampLifeCategoryPoints,
   getLifeCategoryDecayAmount
 } from "@/lib/life-categories";
@@ -132,6 +133,48 @@ export async function awardLifeCategoryPoints({
       ),
       last_completed_at: completedAt,
       last_decay_applied_at: completedAt
+    })
+    .eq("id", progress.id)
+    .eq("user_id", userId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+}
+
+export async function penalizeLifeCategoryPoints({
+  userId,
+  category,
+  difficulty
+}: {
+  userId: string;
+  category: LifeCategory;
+  difficulty: QuestDifficulty;
+}) {
+  const supabase = createClient();
+  await ensureLifeCategoryProgress(userId);
+
+  const { data: progress, error: progressError } = await supabase
+    .from("life_category_progress")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("category", category)
+    .maybeSingle();
+
+  if (progressError) {
+    throw new Error(progressError.message);
+  }
+
+  if (!progress) {
+    throw new Error("Life category progress was not initialized.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("life_category_progress")
+    .update({
+      points: clampLifeCategoryPoints(
+        progress.points + LIFE_CATEGORY_FAILURE_POINTS[difficulty]
+      )
     })
     .eq("id", progress.id)
     .eq("user_id", userId);

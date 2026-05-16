@@ -14,6 +14,7 @@ export const statusLabels: Record<QuestStatus, string> = {
   pending_verification: "Pending Verification",
   completed: "Completed",
   failed: "Failed",
+  forfeited: "Forfeited",
   abandoned: "Abandoned",
   expired: "Expired"
 };

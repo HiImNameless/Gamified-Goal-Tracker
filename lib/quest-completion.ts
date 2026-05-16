@@ -1,4 +1,7 @@
-import { awardLifeCategoryPoints } from "@/lib/life-category-progress";
+import {
+  awardLifeCategoryPoints,
+  penalizeLifeCategoryPoints
+} from "@/lib/life-category-progress";
 import { applyLpChange } from "@/lib/ranks";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,7 +46,9 @@ export async function completeQuestForUser(userId: string, questId: string) {
       rank_tier: nextRank.rankTier,
       lp: nextRank.lp,
       total_xp: progress.total_xp + quest.xp_reward,
-      completed_quests: progress.completed_quests + 1
+      completed_quests: progress.completed_quests + 1,
+      tracked_quest_id:
+        progress.tracked_quest_id === questId ? null : progress.tracked_quest_id
     })
     .eq("user_id", userId);
 
@@ -86,5 +91,85 @@ export async function completeQuestForUser(userId: string, questId: string) {
     user_id: userId,
     action: "completed",
     note: `Quest completed. Awarded ${quest.lp_reward} LP.`
+  });
+}
+
+export async function forfeitQuestForUser(userId: string, questId: string) {
+  const supabase = createClient();
+  const { data: quest } = await supabase
+    .from("quests")
+    .select("id, owner_id, status, life_category, difficulty, lp_penalty")
+    .eq("id", questId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+
+  if (!quest || quest.status !== "active") {
+    return;
+  }
+
+  const { data: progress } = await supabase
+    .from("user_progress")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!progress) {
+    return;
+  }
+
+  const nextRank = applyLpChange(progress.rank_tier, progress.lp, quest.lp_penalty);
+  const failedAt = new Date().toISOString();
+
+  const { error: questError } = await supabase
+    .from("quests")
+    .update({
+      status: "forfeited",
+      failed_at: failedAt
+    })
+    .eq("id", questId)
+    .eq("owner_id", userId)
+    .eq("status", "active");
+
+  if (questError) {
+    throw new Error(questError.message);
+  }
+
+  const { error: progressError } = await supabase
+    .from("user_progress")
+    .update({
+      rank_tier: nextRank.rankTier,
+      lp: nextRank.lp,
+      failed_quests: progress.failed_quests + 1,
+      tracked_quest_id:
+        progress.tracked_quest_id === questId ? null : progress.tracked_quest_id
+    })
+    .eq("user_id", userId);
+
+  if (progressError) {
+    throw new Error(progressError.message);
+  }
+
+  await supabase.from("lp_events").insert({
+    user_id: userId,
+    quest_id: questId,
+    amount: quest.lp_penalty,
+    previous_rank_tier: progress.rank_tier,
+    previous_lp: progress.lp,
+    new_rank_tier: nextRank.rankTier,
+    new_lp: nextRank.lp,
+    reason: "Quest forfeited"
+  });
+
+  await penalizeLifeCategoryPoints({
+    userId,
+    category: quest.life_category,
+    difficulty: quest.difficulty
+  });
+
+  await supabase.from("quest_logs").insert({
+    quest_id: questId,
+    user_id: userId,
+    action: "forfeited",
+    note: `Quest forfeited. Lost ${Math.abs(quest.lp_penalty)} LP.`
   });
 }

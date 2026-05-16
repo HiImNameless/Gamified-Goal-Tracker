@@ -2,8 +2,6 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CalendarClock,
-  CheckCircle2,
-  Circle,
   HeartPulse,
   ShieldCheck,
   Users,
@@ -12,9 +10,10 @@ import {
 import { notFound, redirect } from "next/navigation";
 import {
   completeQuestAction,
-  submitProofAction,
-  toggleCriteriaAction
+  submitProofAction
 } from "@/app/quests/actions";
+import { CriteriaEditor } from "@/components/quest/criteria-editor";
+import { QuestActionButtons } from "@/components/quest/quest-action-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,12 @@ import {
   getTimeRemaining,
   statusLabels
 } from "@/lib/quest-utils";
-import { lifeCategoryColors, lifeCategoryLabels } from "@/lib/life-categories";
+import {
+  LIFE_CATEGORY_COMPLETION_POINTS,
+  LIFE_CATEGORY_FAILURE_POINTS,
+  lifeCategoryColors,
+  lifeCategoryLabels
+} from "@/lib/life-categories";
 import { getQuestForUser } from "@/lib/supabase/queries";
 import { getDashboardData } from "@/lib/supabase/queries";
 import { cn } from "@/lib/utils";
@@ -48,7 +52,7 @@ const categoryIcons = {
 
 export default async function QuestDetailPage({ params }: QuestDetailPageProps) {
   const user = await requireUser();
-  const [{ profile }, quest] = await Promise.all([
+  const [{ profile, progress: userProgress }, quest] = await Promise.all([
     getDashboardData(user.id),
     getQuestForUser(params.id, user.id)
   ]);
@@ -62,13 +66,17 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
   }
 
   const progress = getQuestProgress(quest);
+  const isOwner = quest.ownerId === user.id;
   const canSubmitProof =
-    progress === 100 && quest.proofRequired && quest.status === "active";
+    isOwner && progress === 100 && quest.proofRequired && quest.status === "active";
   const canCompleteDirectly =
-    progress === 100 && !quest.proofRequired && quest.status === "active";
+    isOwner && progress === 100 && !quest.proofRequired && quest.status === "active";
   const reviewStatus = getReviewStatus(quest);
   const CategoryIcon = categoryIcons[quest.lifeCategory];
   const categoryColors = lifeCategoryColors[quest.lifeCategory];
+  const categoryGain = LIFE_CATEGORY_COMPLETION_POINTS[quest.difficulty];
+  const categoryLoss = Math.abs(LIFE_CATEGORY_FAILURE_POINTS[quest.difficulty]);
+  const isTracked = userProgress?.trackedQuestId === quest.id;
 
   return (
     <div className="flex min-h-screen">
@@ -99,6 +107,14 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
               <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                 {quest.description}
               </p>
+              {isOwner ? (
+                <QuestActionButtons
+                  questId={quest.id}
+                  isTracked={isTracked}
+                  canTrack={quest.status === "active"}
+                  canForfeit={quest.status === "active"}
+                />
+              ) : null}
             </div>
             <div className="rounded-md border border-border bg-secondary/50 p-4 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -124,47 +140,11 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
               <CardTitle>Success Criteria</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {quest.criteria.map((criterion) => (
-                <form
-                  key={criterion.id}
-                  action={toggleCriteriaAction}
-                  className="flex gap-3 rounded-md border border-border bg-secondary/40 p-4"
-                >
-                  <input type="hidden" name="criteria_id" value={criterion.id} />
-                  <input type="hidden" name="quest_id" value={quest.id} />
-                  {criterion.isCompleted ? (
-                    <input type="hidden" name="is_completed" value="on" />
-                  ) : null}
-                  <button
-                    type="submit"
-                    className="mt-0.5 h-5 w-5 shrink-0 text-left"
-                    aria-label={
-                      criterion.isCompleted
-                        ? "Mark criterion incomplete"
-                        : "Mark criterion complete"
-                    }
-                  >
-                    {criterion.isCompleted ? (
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className="min-w-0">
-                    <div className="font-medium">{criterion.title}</div>
-                    {criterion.type === "count" ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {criterion.currentCount}/{criterion.targetCount} completed
-                      </p>
-                    ) : null}
-                    {criterion.description ? (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {criterion.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </form>
-              ))}
+              <CriteriaEditor
+                questId={quest.id}
+                criteria={quest.criteria}
+                canEdit={isOwner && quest.status === "active"}
+              />
             </CardContent>
           </Card>
 
@@ -173,17 +153,25 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
               <CardHeader>
                 <CardTitle>Rewards & Stakes</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="rounded-md border border-border bg-secondary/40 p-3">
-                  <div className="text-muted-foreground">LP Reward</div>
-                  <div className="font-semibold text-primary">+{quest.lpReward} LP</div>
+              <CardContent className="space-y-5 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <ImpactBlock
+                    label="LP"
+                    value={`${quest.lpReward}/${Math.abs(quest.lpPenalty)}`}
+                    helper="Gain / Loss"
+                  />
+                  <ImpactBlock
+                    label={lifeCategoryLabels[quest.lifeCategory]}
+                    value={`${categoryGain}/${categoryLoss}`}
+                    helper="Gain / Loss"
+                    icon={<CategoryIcon className={cn("h-4 w-4", categoryColors.text)} />}
+                  />
                 </div>
-                <div className="rounded-md border border-border bg-secondary/40 p-3">
-                  <div className="text-muted-foreground">LP Penalty</div>
-                  <div className="font-semibold text-red-300">{quest.lpPenalty} LP</div>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <StructuredItems label="Rewards" items={quest.rewards} />
+                  <StructuredItems label="Stakes" items={quest.stakes} />
                 </div>
-                <StructuredItems label="Rewards" items={quest.rewards} />
-                <StructuredItems label="Stakes" items={quest.stakes} />
               </CardContent>
             </Card>
 
@@ -312,19 +300,48 @@ function StructuredItems({
   items: { id: string; title: string }[];
 }) {
   return (
-    <div className="rounded-md border border-border bg-secondary/40 p-3">
-      <div className="text-muted-foreground">{label}</div>
+    <div>
+      <div className="text-xs font-semibold uppercase text-muted-foreground">
+        {label}
+      </div>
       {items.length > 0 ? (
-        <ul className="mt-2 space-y-1">
+        <ul className="mt-2 list-disc space-y-1 pl-4">
           {items.map((item) => (
-            <li key={item.id} className="font-semibold">
+            <li key={item.id} className="font-medium leading-5">
               {item.title}
             </li>
           ))}
         </ul>
       ) : (
-        <div className="font-semibold">Not set</div>
+        <div className="mt-2 text-muted-foreground">Not set</div>
       )}
+    </div>
+  );
+}
+
+function ImpactBlock({
+  label,
+  value,
+  helper,
+  icon
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-bold">
+        <span className="text-primary">{value.split("/")[0]}</span>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-red-300">{value.split("/")[1]}</span>
+      </div>
+      <div className="text-xs text-muted-foreground">{helper}</div>
     </div>
   );
 }

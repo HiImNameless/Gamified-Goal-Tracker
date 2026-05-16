@@ -114,7 +114,6 @@ export async function getQuestForUser(questId: string, userId: string): Promise<
     .from("quests")
     .select("*")
     .eq("id", questId)
-    .eq("owner_id", userId)
     .maybeSingle();
 
   if (!questRow) {

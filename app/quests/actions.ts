@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { applyLpChange, LP_BY_DIFFICULTY } from "@/lib/ranks";
+import { completeQuestForUser } from "@/lib/quest-completion";
+import { LP_BY_DIFFICULTY } from "@/lib/ranks";
 import { createClient } from "@/lib/supabase/server";
 import type { CriteriaType, QuestDifficulty, QuestType, SkillCategory, Visibility } from "@/lib/types";
 
-const questTypes: QuestType[] = ["main", "side", "boss"];
+const questTypes: QuestType[] = ["main", "side"];
 const difficulties: QuestDifficulty[] = ["easy", "medium", "hard", "boss"];
 const skillCategories: SkillCategory[] = [
   "health",
@@ -44,6 +45,7 @@ export async function createQuestAction(formData: FormData) {
   const visibility = pickOption(formData.get("visibility"), visibilityOptions, "friends");
   const deadline = String(formData.get("deadline") ?? "").trim();
   const failureCondition = String(formData.get("failure_condition") ?? "").trim();
+  const verifierId = String(formData.get("verifier_id") ?? "").trim();
   const proofRequired = visibility === "friends";
   const economy = LP_BY_DIFFICULTY[difficulty];
 
@@ -79,6 +81,29 @@ export async function createQuestAction(formData: FormData) {
     throw new Error("At least one success criterion is required.");
   }
 
+  let acceptedVerifierId: string | null = null;
+
+  if (proofRequired) {
+    if (!verifierId) {
+      throw new Error("Friends-visible quests require a verifier.");
+    }
+
+    const { data: friendship } = await supabase
+      .from("friendships")
+      .select("id")
+      .eq("status", "accepted")
+      .or(
+        `and(requester_id.eq.${user.id},receiver_id.eq.${verifierId}),and(requester_id.eq.${verifierId},receiver_id.eq.${user.id})`
+      )
+      .maybeSingle();
+
+    if (!friendship) {
+      throw new Error("Selected verifier must be an accepted friend.");
+    }
+
+    acceptedVerifierId = verifierId;
+  }
+
   const { data: quest, error: questError } = await supabase
     .from("quests")
     .insert({
@@ -94,6 +119,7 @@ export async function createQuestAction(formData: FormData) {
       reward_text: null,
       stake_text: null,
       proof_required: proofRequired,
+      verifier_id: acceptedVerifierId,
       visibility,
       xp_reward: economy.xp,
       lp_reward: economy.reward,
@@ -200,7 +226,7 @@ export async function toggleCriteriaAction(formData: FormData) {
     (allCriteria ?? []).every((criterion) => criterion.is_completed);
 
   if (allComplete && !quest.proof_required) {
-    await completeQuest(user.id, questId);
+    await completeQuestForUser(user.id, questId);
     revalidatePath("/");
     redirect("/");
   }
@@ -323,88 +349,8 @@ export async function completeQuestAction(formData: FormData) {
     return;
   }
 
-  await completeQuest(user.id, questId);
+  await completeQuestForUser(user.id, questId);
 
   revalidatePath("/");
   redirect("/");
-}
-
-async function completeQuest(userId: string, questId: string) {
-  const supabase = createClient();
-  const { data: quest } = await supabase
-    .from("quests")
-    .select("id, status, skill_category, xp_reward, lp_reward")
-    .eq("id", questId)
-    .eq("owner_id", userId)
-    .maybeSingle();
-
-  if (!quest || quest.status === "completed") {
-    return;
-  }
-
-  const { data: progress } = await supabase
-    .from("user_progress")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!progress) {
-    return;
-  }
-
-  const nextRank = applyLpChange(progress.rank_tier, progress.lp, quest.lp_reward);
-  const completedAt = new Date().toISOString();
-
-  await supabase
-    .from("quests")
-    .update({
-      status: "completed",
-      completed_at: completedAt
-    })
-    .eq("id", questId)
-    .eq("owner_id", userId);
-
-  await supabase
-    .from("user_progress")
-    .update({
-      rank_tier: nextRank.rankTier,
-      lp: nextRank.lp,
-      total_xp: progress.total_xp + quest.xp_reward,
-      completed_quests: progress.completed_quests + 1
-    })
-    .eq("user_id", userId);
-
-  await supabase.from("lp_events").insert({
-    user_id: userId,
-    quest_id: questId,
-    amount: quest.lp_reward,
-    previous_rank_tier: progress.rank_tier,
-    previous_lp: progress.lp,
-    new_rank_tier: nextRank.rankTier,
-    new_lp: nextRank.lp,
-    reason: "Quest completed"
-  });
-
-  const { data: skill } = await supabase
-    .from("skill_progress")
-    .select("id, xp")
-    .eq("user_id", userId)
-    .eq("skill_category", quest.skill_category)
-    .maybeSingle();
-
-  if (skill) {
-    await supabase
-      .from("skill_progress")
-      .update({
-        xp: skill.xp + quest.xp_reward
-      })
-      .eq("id", skill.id);
-  }
-
-  await supabase.from("quest_logs").insert({
-    quest_id: questId,
-    user_id: userId,
-    action: "completed",
-    note: `Quest completed. Awarded ${quest.lp_reward} LP.`
-  });
 }

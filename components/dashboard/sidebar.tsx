@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Award, BookOpen, LayoutDashboard, Settings, Swords, Users } from "lucide-react";
+import { Award, BookOpen, LayoutDashboard, Settings, ShieldCheck, Swords, Users } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { Profile } from "@/lib/types";
 
@@ -7,6 +7,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Quests / Journal", icon: BookOpen, href: "/" },
   { label: "Friends", icon: Users, href: "/friends" },
+  { label: "Verification", icon: ShieldCheck, href: "/verification" },
   { label: "Reward Pool", icon: Award, href: "/" },
   { label: "Settings", icon: Settings, href: "/" }
 ];

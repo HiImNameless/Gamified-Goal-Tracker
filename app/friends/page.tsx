@@ -156,7 +156,6 @@ function FriendCard({ friend }: { friend: FriendConnection }) {
           <div className="flex items-center gap-5">
             <QuestCount label="S" value={counts.side} className="text-primary" />
             <QuestCount label="M" value={counts.main} className="text-amber-300" />
-            <QuestCount label="B" value={counts.boss} className="text-red-300" />
           </div>
         </div>
       </div>

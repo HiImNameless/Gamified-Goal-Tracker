@@ -60,3 +60,35 @@ export function getTimeRemaining(deadline?: string) {
 export function getQuestEconomy(difficulty: QuestDifficulty) {
   return LP_BY_DIFFICULTY[difficulty];
 }
+
+export function getReviewStatus(quest: Quest) {
+  const latestReview = [...quest.reviewNotes].reverse().find((note) =>
+    ["approved", "rejected", "pending"].includes(note.status)
+  );
+
+  if (latestReview?.status === "approved" || quest.status === "completed") {
+    return {
+      label: "Verified",
+      tone: "success" as const
+    };
+  }
+
+  if (latestReview?.status === "rejected") {
+    return {
+      label: "Rejected",
+      tone: "danger" as const
+    };
+  }
+
+  if (quest.status === "pending_verification") {
+    return {
+      label: "In Review",
+      tone: "warning" as const
+    };
+  }
+
+  return {
+    label: "Unverified",
+    tone: "muted" as const
+  };
+}

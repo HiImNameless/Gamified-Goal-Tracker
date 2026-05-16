@@ -7,8 +7,13 @@ import { createQuestAction } from "@/app/quests/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { Profile } from "@/lib/types";
 
-export function CreateQuestModal() {
+interface CreateQuestModalProps {
+  acceptedFriends: Profile[];
+}
+
+export function CreateQuestModal({ acceptedFriends }: CreateQuestModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [criteria, setCriteria] = useState([{ id: crypto.randomUUID(), type: "standalone" }]);
   const [rewards, setRewards] = useState([{ id: crypto.randomUUID() }]);
@@ -17,6 +22,13 @@ export function CreateQuestModal() {
 
   function closeModal() {
     setIsOpen(false);
+  }
+
+  function resetModalState() {
+    setCriteria([{ id: crypto.randomUUID(), type: "standalone" }]);
+    setRewards([{ id: crypto.randomUUID() }]);
+    setStakes([{ id: crypto.randomUUID() }]);
+    setVisibility("friends");
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -28,7 +40,17 @@ export function CreateQuestModal() {
     if (!hasCriteria) {
       event.preventDefault();
       event.currentTarget.reportValidity();
+      return;
     }
+
+    if (visibility === "friends" && acceptedFriends.length === 0) {
+      event.preventDefault();
+      event.currentTarget.reportValidity();
+      return;
+    }
+
+    setIsOpen(false);
+    resetModalState();
   }
 
   return (
@@ -91,7 +113,6 @@ export function CreateQuestModal() {
                   >
                     <option value="main">Main Quest</option>
                     <option value="side">Side Quest</option>
-                    <option value="boss">Boss Quest</option>
                   </select>
                 </div>
                 <div className="grid gap-2">
@@ -252,6 +273,31 @@ export function CreateQuestModal() {
                   </select>
                 </div>
               </div>
+
+              {visibility === "friends" ? (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium" htmlFor="verifier">
+                    Verifier
+                  </label>
+                  <select
+                    id="verifier"
+                    name="verifier_id"
+                    required
+                    className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
+                  >
+                    <option value="">
+                      {acceptedFriends.length > 0
+                        ? "Choose a friend"
+                        : "Add a friend first"}
+                    </option>
+                    {acceptedFriends.map((friend) => (
+                      <option key={friend.id} value={friend.id}>
+                        {friend.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
               <div className="rounded-md border border-border bg-secondary/45 p-3 text-sm text-muted-foreground">
                 {visibility === "friends"

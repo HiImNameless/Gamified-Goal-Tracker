@@ -99,7 +99,8 @@ export const mockQuests: Quest[] = [
       }
     ],
     rewards: [],
-    stakes: []
+    stakes: [],
+    reviewNotes: []
   },
   {
     id: "quest-main-sleep",
@@ -150,7 +151,8 @@ export const mockQuests: Quest[] = [
       }
     ],
     rewards: [],
-    stakes: []
+    stakes: [],
+    reviewNotes: []
   },
   {
     id: "quest-side-gym",
@@ -183,7 +185,8 @@ export const mockQuests: Quest[] = [
       }
     ],
     rewards: [],
-    stakes: []
+    stakes: [],
+    reviewNotes: []
   },
   {
     id: "quest-side-room",
@@ -228,7 +231,8 @@ export const mockQuests: Quest[] = [
       }
     ],
     rewards: [],
-    stakes: []
+    stakes: [],
+    reviewNotes: []
   }
 ];
 

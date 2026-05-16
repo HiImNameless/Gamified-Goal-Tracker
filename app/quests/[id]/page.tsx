@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarClock, CheckCircle2, Circle, ShieldCheck } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   completeQuestAction,
   submitProofAction,
@@ -11,15 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Sidebar } from "@/components/dashboard/sidebar";
 import { requireUser } from "@/lib/auth";
 import {
   difficultyLabels,
   getQuestProgress,
+  getReviewStatus,
   getTimeRemaining,
-  skillLabels,
   statusLabels
 } from "@/lib/quest-utils";
 import { getQuestForUser } from "@/lib/supabase/queries";
+import { getDashboardData } from "@/lib/supabase/queries";
 
 interface QuestDetailPageProps {
   params: {
@@ -29,7 +31,14 @@ interface QuestDetailPageProps {
 
 export default async function QuestDetailPage({ params }: QuestDetailPageProps) {
   const user = await requireUser();
-  const quest = await getQuestForUser(params.id, user.id);
+  const [{ profile }, quest] = await Promise.all([
+    getDashboardData(user.id),
+    getQuestForUser(params.id, user.id)
+  ]);
+
+  if (!profile) {
+    redirect("/profile/setup");
+  }
 
   if (!quest) {
     notFound();
@@ -40,9 +49,13 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
     progress === 100 && quest.proofRequired && quest.status === "active";
   const canCompleteDirectly =
     progress === 100 && !quest.proofRequired && quest.status === "active";
+  const reviewStatus = getReviewStatus(quest);
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen">
+      <Sidebar profile={profile} />
+
+      <main className="w-full px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <Button variant="ghost">
           <Link href="/" className="inline-flex items-center gap-2">
@@ -57,7 +70,7 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
               <div className="flex flex-wrap gap-2">
                 <Badge>{difficultyLabels[quest.difficulty]}</Badge>
                 <Badge tone="muted">{statusLabels[quest.status]}</Badge>
-                <Badge tone="muted">{skillLabels[quest.skillCategory]}</Badge>
+                <Badge tone={reviewStatus.tone}>{reviewStatus.label}</Badge>
               </div>
               <h1 className="text-3xl font-bold">{quest.title}</h1>
               <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -185,10 +198,51 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
                 ) : null}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Reviewer Comments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {quest.reviewNotes.filter((note) => note.reviewerComment).length > 0 ? (
+                  quest.reviewNotes
+                    .filter((note) => note.reviewerComment)
+                    .map((note) => (
+                      <div
+                        key={note.id}
+                        className="rounded-md border border-border bg-secondary/40 p-3"
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <Badge
+                            tone={
+                              note.status === "approved"
+                                ? "success"
+                                : note.status === "rejected"
+                                  ? "danger"
+                                  : "warning"
+                            }
+                          >
+                            {note.status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(note.reviewedAt ?? note.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="leading-6 text-muted-foreground">
+                          {note.reviewerComment}
+                        </p>
+                      </div>
+                    ))
+                ) : (
+                  <p className="text-muted-foreground">No reviewer comments yet.</p>
+                )}
+              </CardContent>
+            </Card>
           </aside>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 

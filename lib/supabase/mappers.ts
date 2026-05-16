@@ -3,6 +3,7 @@ import type {
   Profile,
   Quest,
   QuestCriteria,
+  QuestReviewNote,
   QuestStructuredItem,
   SkillProgress,
   UserProgress
@@ -13,6 +14,7 @@ type ProgressRow = Database["public"]["Tables"]["user_progress"]["Row"];
 type QuestRow = Database["public"]["Tables"]["quests"]["Row"];
 type CriteriaRow = Database["public"]["Tables"]["quest_criteria"]["Row"];
 type StructuredItemRow = Database["public"]["Tables"]["quest_structured_items"]["Row"];
+type ProofSubmissionRow = Database["public"]["Tables"]["proof_submissions"]["Row"];
 type SkillRow = Database["public"]["Tables"]["skill_progress"]["Row"];
 
 export function mapProfile(row: ProfileRow): Profile {
@@ -69,11 +71,22 @@ export function mapStructuredItem(row: StructuredItemRow): QuestStructuredItem {
   };
 }
 
+export function mapReviewNote(row: ProofSubmissionRow): QuestReviewNote {
+  return {
+    id: row.id,
+    status: row.status,
+    reviewerComment: row.reviewer_comment ?? undefined,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at ?? undefined
+  };
+}
+
 export function mapQuest(
   row: QuestRow,
   criteria: QuestCriteria[] = [],
   rewards: QuestStructuredItem[] = [],
-  stakes: QuestStructuredItem[] = []
+  stakes: QuestStructuredItem[] = [],
+  reviewNotes: QuestReviewNote[] = []
 ): Quest {
   return {
     id: row.id,
@@ -100,7 +113,8 @@ export function mapQuest(
     failedAt: row.failed_at ?? undefined,
     criteria,
     rewards,
-    stakes
+    stakes,
+    reviewNotes
   };
 }
 

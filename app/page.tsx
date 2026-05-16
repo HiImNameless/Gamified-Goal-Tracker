@@ -1,12 +1,16 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requireUser } from "@/lib/auth";
+import { getFriendsData } from "@/lib/friends";
 import { ensureProgressAndSkills } from "@/lib/profile-bootstrap";
 import { getDashboardData } from "@/lib/supabase/queries";
+import { getVerificationQueue } from "@/lib/verification";
 import { redirect } from "next/navigation";
 
 export default async function HomePage() {
   const user = await requireUser();
   let { profile, progress, quests, skills } = await getDashboardData(user.id);
+  let friends = await getFriendsData(user.id);
+  let verificationQueue = await getVerificationQueue(user.id);
 
   if (!profile) {
     redirect("/profile/setup");
@@ -15,6 +19,8 @@ export default async function HomePage() {
   if (!progress || skills.length === 0) {
     await ensureProgressAndSkills(user.id);
     const refreshedData = await getDashboardData(user.id);
+    friends = await getFriendsData(user.id);
+    verificationQueue = await getVerificationQueue(user.id);
     progress = refreshedData.progress;
     quests = refreshedData.quests;
     skills = refreshedData.skills;
@@ -30,6 +36,8 @@ export default async function HomePage() {
       progress={progress}
       quests={quests}
       skills={skills}
+      acceptedFriends={friends.accepted.map((friend) => friend.profile)}
+      verificationQueue={verificationQueue}
     />
   );
 }

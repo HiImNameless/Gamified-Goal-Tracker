@@ -119,6 +119,14 @@ export interface QuestStructuredItem {
   createdAt: string;
 }
 
+export interface QuestReviewNote {
+  id: string;
+  status: ProofStatus;
+  reviewerComment?: string;
+  createdAt: string;
+  reviewedAt?: string;
+}
+
 export interface Quest {
   id: string;
   ownerId: string;
@@ -145,6 +153,7 @@ export interface Quest {
   criteria: QuestCriteria[];
   rewards: QuestStructuredItem[];
   stakes: QuestStructuredItem[];
+  reviewNotes: QuestReviewNote[];
 }
 
 export interface ProofSubmission {

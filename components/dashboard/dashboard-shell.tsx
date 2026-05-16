@@ -2,23 +2,27 @@ import { CreateQuestModal } from "@/components/quest/create-quest-modal";
 import { QuestCard } from "@/components/quest/quest-card";
 import { RankPanel } from "@/components/dashboard/rank-panel";
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { SkillsPanel } from "@/components/dashboard/skills-panel";
-import { StatsPanel } from "@/components/dashboard/stats-panel";
 import { Badge } from "@/components/ui/badge";
 import type { Profile, Quest, SkillProgress, UserProgress } from "@/lib/types";
+import type { VerificationItem } from "@/lib/verification";
+import { DashboardVerificationPanel } from "@/components/dashboard/verification-panel";
 
 interface DashboardShellProps {
   profile: Profile;
   progress: UserProgress;
   quests: Quest[];
   skills: SkillProgress[];
+  acceptedFriends: Profile[];
+  verificationQueue: VerificationItem[];
 }
 
 export function DashboardShell({
   profile,
   progress,
   quests,
-  skills
+  skills,
+  acceptedFriends,
+  verificationQueue
 }: DashboardShellProps) {
   const activeQuests = quests.filter((quest) =>
     ["active", "pending_verification"].includes(quest.status)
@@ -118,13 +122,12 @@ export function DashboardShell({
 
           <aside className="space-y-6">
             <RankPanel progress={progress} />
-            <StatsPanel progress={progress} />
-            <SkillsPanel skills={skills} />
+            <DashboardVerificationPanel items={verificationQueue} />
           </aside>
         </div>
       </main>
 
-      <CreateQuestModal />
+      <CreateQuestModal acceptedFriends={acceptedFriends} />
     </div>
   );
 }

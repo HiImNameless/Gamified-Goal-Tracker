@@ -7,8 +7,8 @@ import type { Quest } from "@/lib/types";
 import {
   difficultyLabels,
   getQuestProgress,
+  getReviewStatus,
   getTimeRemaining,
-  skillLabels,
   statusLabels
 } from "@/lib/quest-utils";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ interface QuestCardProps {
 
 export function QuestCard({ quest }: QuestCardProps) {
   const progress = getQuestProgress(quest);
+  const reviewStatus = getReviewStatus(quest);
 
   return (
     <Link href={`/quests/${quest.id}`} className="block">
@@ -78,7 +79,7 @@ export function QuestCard({ quest }: QuestCardProps) {
             >
               {statusLabels[quest.status]}
             </Badge>
-            <Badge tone="muted">{skillLabels[quest.skillCategory]}</Badge>
+            <Badge tone={reviewStatus.tone}>{reviewStatus.label}</Badge>
             <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarClock className="h-3.5 w-3.5" />
               {getTimeRemaining(quest.deadline)}

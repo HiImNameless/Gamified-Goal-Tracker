@@ -5,15 +5,27 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { SkillsPanel } from "@/components/dashboard/skills-panel";
 import { StatsPanel } from "@/components/dashboard/stats-panel";
 import { Badge } from "@/components/ui/badge";
-import { mockProgress, mockQuests, mockSkills } from "@/lib/mock-data";
+import type { Profile, Quest, SkillProgress, UserProgress } from "@/lib/types";
 
-export function DashboardShell() {
-  const mainQuests = mockQuests.filter((quest) => quest.type === "main");
-  const sideQuests = mockQuests.filter((quest) => quest.type === "side");
+interface DashboardShellProps {
+  profile: Profile;
+  progress: UserProgress;
+  quests: Quest[];
+  skills: SkillProgress[];
+}
+
+export function DashboardShell({
+  profile,
+  progress,
+  quests,
+  skills
+}: DashboardShellProps) {
+  const mainQuests = quests.filter((quest) => quest.type === "main");
+  const sideQuests = quests.filter((quest) => quest.type === "side");
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar profile={profile} />
 
       <main className="w-full px-4 py-5 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
@@ -37,7 +49,7 @@ export function DashboardShell() {
                 </div>
                 <div className="rounded-md border border-border bg-secondary/60 p-3">
                   <div className="text-lg font-bold text-primary">
-                    {mockQuests.filter((quest) => quest.status === "pending_verification").length}
+                    {quests.filter((quest) => quest.status === "pending_verification").length}
                   </div>
                   <div className="text-muted-foreground">Review</div>
                 </div>
@@ -50,9 +62,11 @@ export function DashboardShell() {
                 <Badge tone="muted">Campaign Goals</Badge>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                {mainQuests.map((quest) => (
-                  <QuestCard key={quest.id} quest={quest} />
-                ))}
+                {mainQuests.length > 0 ? (
+                  mainQuests.map((quest) => <QuestCard key={quest.id} quest={quest} />)
+                ) : (
+                  <EmptyQuestState label="No main quests yet." />
+                )}
               </div>
             </section>
 
@@ -62,22 +76,32 @@ export function DashboardShell() {
                 <Badge tone="muted">Quick Wins</Badge>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                {sideQuests.map((quest) => (
-                  <QuestCard key={quest.id} quest={quest} />
-                ))}
+                {sideQuests.length > 0 ? (
+                  sideQuests.map((quest) => <QuestCard key={quest.id} quest={quest} />)
+                ) : (
+                  <EmptyQuestState label="No side quests yet." />
+                )}
               </div>
             </section>
           </section>
 
           <aside className="space-y-6">
-            <RankPanel progress={mockProgress} />
-            <StatsPanel progress={mockProgress} />
-            <SkillsPanel skills={mockSkills} />
+            <RankPanel progress={progress} />
+            <StatsPanel progress={progress} />
+            <SkillsPanel skills={skills} />
           </aside>
         </div>
       </main>
 
       <CreateQuestModal />
+    </div>
+  );
+}
+
+function EmptyQuestState({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-card/45 p-6 text-sm text-muted-foreground">
+      {label} Use the New Quest button to add one to your board.
     </div>
   );
 }

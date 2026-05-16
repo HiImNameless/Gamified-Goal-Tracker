@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { mockQuests } from "@/lib/mock-data";
+import { requireUser } from "@/lib/auth";
 import {
   difficultyLabels,
   getQuestProgress,
@@ -13,6 +13,7 @@ import {
   skillLabels,
   statusLabels
 } from "@/lib/quest-utils";
+import { getQuestForUser } from "@/lib/supabase/queries";
 
 interface QuestDetailPageProps {
   params: {
@@ -20,8 +21,9 @@ interface QuestDetailPageProps {
   };
 }
 
-export default function QuestDetailPage({ params }: QuestDetailPageProps) {
-  const quest = mockQuests.find((item) => item.id === params.id);
+export default async function QuestDetailPage({ params }: QuestDetailPageProps) {
+  const user = await requireUser();
+  const quest = await getQuestForUser(params.id, user.id);
 
   if (!quest) {
     notFound();

@@ -1,5 +1,6 @@
 import { Award, BookOpen, LayoutDashboard, Settings, Swords, Users } from "lucide-react";
-import { mockProfile } from "@/lib/mock-data";
+import { LogoutButton } from "@/components/auth/logout-button";
+import type { Profile } from "@/lib/types";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -9,7 +10,11 @@ const navItems = [
   { label: "Settings", icon: Settings }
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  profile: Profile;
+}
+
+export function Sidebar({ profile }: SidebarProps) {
   return (
     <aside className="hidden min-h-screen w-72 shrink-0 border-r border-border bg-background/70 p-5 backdrop-blur lg:block">
       <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
@@ -17,9 +22,9 @@ export function Sidebar() {
           <Swords className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{mockProfile.displayName}</p>
+          <p className="truncate text-sm font-semibold">{profile.displayName}</p>
           <p className="truncate text-xs text-muted-foreground">
-            @{mockProfile.username}
+            @{profile.username}
           </p>
         </div>
       </div>
@@ -35,6 +40,8 @@ export function Sidebar() {
           </button>
         ))}
       </nav>
+
+      <LogoutButton />
     </aside>
   );
 }

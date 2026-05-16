@@ -3,23 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { LIFE_CATEGORIES } from "@/lib/life-categories";
 import { completeQuestForUser } from "@/lib/quest-completion";
 import { LP_BY_DIFFICULTY } from "@/lib/ranks";
 import { createClient } from "@/lib/supabase/server";
-import type { CriteriaType, QuestDifficulty, QuestType, SkillCategory, Visibility } from "@/lib/types";
+import type {
+  CriteriaType,
+  LifeCategory,
+  QuestDifficulty,
+  QuestType,
+  Visibility
+} from "@/lib/types";
 
 const questTypes: QuestType[] = ["main", "side"];
 const difficulties: QuestDifficulty[] = ["easy", "medium", "hard", "boss"];
-const skillCategories: SkillCategory[] = [
-  "health",
-  "fitness",
-  "programming",
-  "editing",
-  "study",
-  "money",
-  "creativity",
-  "discipline"
-];
+const lifeCategories: LifeCategory[] = LIFE_CATEGORIES;
 const visibilityOptions: Visibility[] = ["private", "friends"];
 const criteriaTypes: CriteriaType[] = ["standalone", "count"];
 const PROOF_BUCKET = "quest-proofs";
@@ -37,11 +35,7 @@ export async function createQuestAction(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const type = pickOption(formData.get("type"), questTypes, "side");
   const difficulty = pickOption(formData.get("difficulty"), difficulties, "easy");
-  const skillCategory = pickOption(
-    formData.get("skill_category"),
-    skillCategories,
-    "discipline"
-  );
+  const lifeCategory = pickOption(formData.get("life_category"), lifeCategories, "health");
   const visibility = pickOption(formData.get("visibility"), visibilityOptions, "friends");
   const deadline = String(formData.get("deadline") ?? "").trim();
   const failureCondition = String(formData.get("failure_condition") ?? "").trim();
@@ -113,7 +107,8 @@ export async function createQuestAction(formData: FormData) {
       type,
       difficulty,
       status: "active",
-      skill_category: skillCategory,
+      skill_category: "discipline",
+      life_category: lifeCategory,
       deadline: deadline ? new Date(deadline).toISOString() : null,
       failure_condition: failureCondition || null,
       reward_text: null,

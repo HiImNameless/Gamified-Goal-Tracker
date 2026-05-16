@@ -75,6 +75,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      life_category_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          category: "health" | "wealth" | "social";
+          points: number;
+          last_completed_at: string | null;
+          last_decay_applied_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          category: "health" | "wealth" | "social";
+          points?: number;
+          last_completed_at?: string | null;
+          last_decay_applied_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["life_category_progress"]["Insert"]>;
+        Relationships: [];
+      };
       friendships: {
         Row: {
           id: string;
@@ -127,6 +151,7 @@ export type Database = {
             | "money"
             | "creativity"
             | "discipline";
+          life_category: "health" | "wealth" | "social";
           deadline: string | null;
           failure_condition: string | null;
           reward_text: string | null;
@@ -166,6 +191,7 @@ export type Database = {
             | "money"
             | "creativity"
             | "discipline";
+          life_category?: "health" | "wealth" | "social";
           deadline?: string | null;
           failure_condition?: string | null;
           reward_text?: string | null;
@@ -368,6 +394,7 @@ export type Database = {
       quest_type: "main" | "side" | "boss";
       quest_criteria_type: "standalone" | "count";
       quest_structured_item_type: "reward" | "stake";
+      life_category: "health" | "wealth" | "social";
       skill_category:
         | "health"
         | "fitness"

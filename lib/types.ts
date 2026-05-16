@@ -21,6 +21,8 @@ export type SkillCategory =
   | "creativity"
   | "discipline";
 
+export type LifeCategory = "health" | "wealth" | "social";
+
 export type Visibility = "private" | "friends";
 
 export type CriteriaType = "standalone" | "count";
@@ -136,6 +138,7 @@ export interface Quest {
   difficulty: QuestDifficulty;
   status: QuestStatus;
   skillCategory: SkillCategory;
+  lifeCategory: LifeCategory;
   deadline?: string;
   failureCondition?: string;
   rewardText?: string;
@@ -154,6 +157,17 @@ export interface Quest {
   rewards: QuestStructuredItem[];
   stakes: QuestStructuredItem[];
   reviewNotes: QuestReviewNote[];
+}
+
+export interface LifeCategoryProgress {
+  id: string;
+  userId: string;
+  category: LifeCategory;
+  points: number;
+  lastCompletedAt?: string;
+  lastDecayAppliedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProofSubmission {

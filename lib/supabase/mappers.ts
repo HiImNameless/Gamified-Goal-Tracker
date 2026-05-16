@@ -97,6 +97,7 @@ export function mapQuest(
     difficulty: row.difficulty,
     status: row.status,
     skillCategory: row.skill_category,
+    lifeCategory: row.life_category,
     deadline: row.deadline ?? undefined,
     failureCondition: row.failure_condition ?? undefined,
     rewardText: row.reward_text ?? undefined,

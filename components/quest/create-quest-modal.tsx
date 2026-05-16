@@ -131,22 +131,17 @@ export function CreateQuestModal({ acceptedFriends }: CreateQuestModalProps) {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <label className="text-sm font-medium" htmlFor="skill-category">
-                    Skill
+                  <label className="text-sm font-medium" htmlFor="life-category">
+                    Category
                   </label>
                   <select
-                    id="skill-category"
-                    name="skill_category"
+                    id="life-category"
+                    name="life_category"
                     className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
                   >
-                    <option value="discipline">Discipline</option>
                     <option value="health">Health</option>
-                    <option value="fitness">Fitness</option>
-                    <option value="programming">Programming</option>
-                    <option value="editing">Editing</option>
-                    <option value="study">Study</option>
-                    <option value="money">Money</option>
-                    <option value="creativity">Creativity</option>
+                    <option value="wealth">Wealth</option>
+                    <option value="social">Social</option>
                   </select>
                 </div>
                 <div className="grid gap-2">

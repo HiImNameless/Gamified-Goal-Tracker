@@ -1,7 +1,17 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarClock, CheckCircle2, Flame, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  CheckCircle2,
+  Flame,
+  HeartPulse,
+  ShieldCheck,
+  Users,
+  WalletCards
+} from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { LifeBalanceHud } from "@/components/dashboard/life-balance-hud";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,15 +25,23 @@ import {
   getTimeRemaining,
   statusLabels
 } from "@/lib/quest-utils";
+import { lifeCategoryColors, lifeCategoryLabels } from "@/lib/life-categories";
 import { getRankName } from "@/lib/ranks";
 import { getDashboardData } from "@/lib/supabase/queries";
 import type { Quest } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface FriendProfilePageProps {
   params: {
     id: string;
   };
 }
+
+const categoryIcons = {
+  health: HeartPulse,
+  wealth: WalletCards,
+  social: Users
+};
 
 export default async function FriendProfilePage({ params }: FriendProfilePageProps) {
   const user = await requireUser();
@@ -122,6 +140,15 @@ export default async function FriendProfilePage({ params }: FriendProfilePagePro
             <aside className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle className="text-sm">Life Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LifeBalanceHud categories={friendData.lifeCategories} layout="stack" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle className="text-sm">Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
@@ -179,9 +206,11 @@ export default async function FriendProfilePage({ params }: FriendProfilePagePro
 function FriendQuestCard({ quest }: { quest: Quest }) {
   const progress = getQuestProgress(quest);
   const reviewStatus = getReviewStatus(quest);
+  const CategoryIcon = categoryIcons[quest.lifeCategory];
+  const categoryColors = lifeCategoryColors[quest.lifeCategory];
 
   return (
-    <Card className="border-border/80 bg-card/78">
+    <Card className={cn("bg-card/78", categoryColors.border)}>
       <CardContent className="p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0 space-y-2">
@@ -196,6 +225,10 @@ function FriendQuestCard({ quest }: { quest: Quest }) {
                 {statusLabels[quest.status]}
               </Badge>
               <Badge tone={reviewStatus.tone}>{reviewStatus.label}</Badge>
+              <Badge tone="muted">
+                <CategoryIcon className={cn("mr-1 h-3 w-3", categoryColors.text)} />
+                {lifeCategoryLabels[quest.lifeCategory]}
+              </Badge>
             </div>
             <h3 className="truncate text-base font-semibold">{quest.title}</h3>
             <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">

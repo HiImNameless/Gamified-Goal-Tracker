@@ -1,3 +1,4 @@
+import { awardLifeCategoryPoints } from "@/lib/life-category-progress";
 import { applyLpChange } from "@/lib/ranks";
 import { createClient } from "@/lib/supabase/server";
 
@@ -5,7 +6,7 @@ export async function completeQuestForUser(userId: string, questId: string) {
   const supabase = createClient();
   const { data: quest } = await supabase
     .from("quests")
-    .select("id, owner_id, status, skill_category, xp_reward, lp_reward")
+    .select("id, owner_id, status, skill_category, life_category, difficulty, xp_reward, lp_reward")
     .eq("id", questId)
     .eq("owner_id", userId)
     .maybeSingle();
@@ -55,6 +56,13 @@ export async function completeQuestForUser(userId: string, questId: string) {
     new_rank_tier: nextRank.rankTier,
     new_lp: nextRank.lp,
     reason: "Quest completed"
+  });
+
+  await awardLifeCategoryPoints({
+    userId,
+    category: quest.life_category,
+    difficulty: quest.difficulty,
+    completedAt
   });
 
   const { data: skill } = await supabase

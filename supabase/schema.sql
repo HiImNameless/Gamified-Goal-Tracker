@@ -21,6 +21,7 @@ create type public.skill_category as enum (
   'creativity',
   'discipline'
 );
+create type public.life_category as enum ('health', 'wealth', 'social');
 create type public.visibility as enum ('private', 'friends');
 create type public.friendship_status as enum ('pending', 'accepted', 'rejected');
 create type public.proof_status as enum ('pending', 'approved', 'rejected');
@@ -61,6 +62,18 @@ create table public.user_progress (
   updated_at timestamptz not null default now()
 );
 
+create table public.life_category_progress (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  category public.life_category not null,
+  points integer not null default 0 check (points >= 0 and points <= 100),
+  last_completed_at timestamptz,
+  last_decay_applied_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint life_category_progress_unique_user_category unique (user_id, category)
+);
+
 create table public.friendships (
   id uuid primary key default gen_random_uuid(),
   requester_id uuid not null references public.profiles(id) on delete cascade,
@@ -81,6 +94,7 @@ create table public.quests (
   difficulty public.quest_difficulty not null default 'easy',
   status public.quest_status not null default 'draft',
   skill_category public.skill_category not null default 'discipline',
+  life_category public.life_category not null default 'health',
   deadline timestamptz,
   failure_condition text,
   reward_text text,
@@ -175,6 +189,10 @@ create trigger set_user_progress_updated_at
 before update on public.user_progress
 for each row execute function public.set_updated_at();
 
+create trigger set_life_category_progress_updated_at
+before update on public.life_category_progress
+for each row execute function public.set_updated_at();
+
 create trigger set_friendships_updated_at
 before update on public.friendships
 for each row execute function public.set_updated_at();
@@ -193,6 +211,7 @@ for each row execute function public.set_updated_at();
 
 alter table public.profiles enable row level security;
 alter table public.user_progress enable row level security;
+alter table public.life_category_progress enable row level security;
 alter table public.friendships enable row level security;
 alter table public.quests enable row level security;
 alter table public.quest_criteria enable row level security;
@@ -233,6 +252,68 @@ on public.user_progress for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+create policy "Users can view own and friend life category progress"
+on public.life_category_progress for select
+to authenticated
+using (
+  auth.uid() = user_id
+  or exists (
+    select 1
+    from public.friendships f
+    where f.status = 'accepted'
+      and (
+        (f.requester_id = auth.uid() and f.receiver_id = user_id)
+        or (f.receiver_id = auth.uid() and f.requester_id = user_id)
+      )
+  )
+);
+
+create policy "Users can insert their own life category progress"
+on public.life_category_progress for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "Quest verifiers can insert owner life category progress"
+on public.life_category_progress for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.quests q
+    where q.owner_id = user_id
+      and q.verifier_id = auth.uid()
+      and q.status in ('pending_verification', 'completed')
+  )
+);
+
+create policy "Users can update their own life category progress"
+on public.life_category_progress for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "Quest verifiers can update owner life category progress"
+on public.life_category_progress for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.quests q
+    where q.owner_id = user_id
+      and q.verifier_id = auth.uid()
+      and q.status in ('pending_verification', 'completed')
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.quests q
+    where q.owner_id = user_id
+      and q.verifier_id = auth.uid()
+      and q.status in ('pending_verification', 'completed')
+  )
+);
 
 create policy "Users can view related friendships"
 on public.friendships for select

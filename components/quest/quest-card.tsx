@@ -1,9 +1,18 @@
 import Link from "next/link";
-import { CalendarClock, CheckCircle2, ShieldCheck, Swords } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  HeartPulse,
+  ShieldCheck,
+  Swords,
+  Users,
+  WalletCards
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { Quest } from "@/lib/types";
+import { lifeCategoryColors, lifeCategoryLabels } from "@/lib/life-categories";
 import {
   difficultyLabels,
   getQuestProgress,
@@ -20,6 +29,12 @@ const difficultyTone = {
   boss: "danger"
 } as const;
 
+const categoryIcons = {
+  health: HeartPulse,
+  wealth: WalletCards,
+  social: Users
+};
+
 interface QuestCardProps {
   quest: Quest;
 }
@@ -27,10 +42,17 @@ interface QuestCardProps {
 export function QuestCard({ quest }: QuestCardProps) {
   const progress = getQuestProgress(quest);
   const reviewStatus = getReviewStatus(quest);
+  const CategoryIcon = categoryIcons[quest.lifeCategory];
+  const categoryColors = lifeCategoryColors[quest.lifeCategory];
 
   return (
     <Link href={`/quests/${quest.id}`} className="block">
-      <Card className="group border-border/80 bg-card/78 transition hover:border-primary/50 hover:shadow-glow">
+      <Card
+        className={cn(
+          "group bg-card/78 transition hover:border-primary/50 hover:shadow-glow",
+          categoryColors.border
+        )}
+      >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-2">
@@ -40,6 +62,7 @@ export function QuestCard({ quest }: QuestCardProps) {
                 ) : (
                   <ShieldCheck className="h-4 w-4 text-primary" />
                 )}
+                <CategoryIcon className={cn("h-4 w-4", categoryColors.text)} />
                 <h3 className="truncate text-sm font-semibold text-foreground">
                   {quest.title}
                 </h3>
@@ -80,6 +103,10 @@ export function QuestCard({ quest }: QuestCardProps) {
               {statusLabels[quest.status]}
             </Badge>
             <Badge tone={reviewStatus.tone}>{reviewStatus.label}</Badge>
+            <Badge tone="muted">
+              <CategoryIcon className={cn("mr-1 h-3 w-3", categoryColors.text)} />
+              {lifeCategoryLabels[quest.lifeCategory]}
+            </Badge>
             <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarClock className="h-3.5 w-3.5" />
               {getTimeRemaining(quest.deadline)}

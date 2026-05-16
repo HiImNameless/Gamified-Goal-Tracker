@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarClock, CheckCircle2, Circle, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  CheckCircle2,
+  Circle,
+  HeartPulse,
+  ShieldCheck,
+  Users,
+  WalletCards
+} from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import {
   completeQuestAction,
@@ -20,14 +29,22 @@ import {
   getTimeRemaining,
   statusLabels
 } from "@/lib/quest-utils";
+import { lifeCategoryColors, lifeCategoryLabels } from "@/lib/life-categories";
 import { getQuestForUser } from "@/lib/supabase/queries";
 import { getDashboardData } from "@/lib/supabase/queries";
+import { cn } from "@/lib/utils";
 
 interface QuestDetailPageProps {
   params: {
     id: string;
   };
 }
+
+const categoryIcons = {
+  health: HeartPulse,
+  wealth: WalletCards,
+  social: Users
+};
 
 export default async function QuestDetailPage({ params }: QuestDetailPageProps) {
   const user = await requireUser();
@@ -50,6 +67,8 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
   const canCompleteDirectly =
     progress === 100 && !quest.proofRequired && quest.status === "active";
   const reviewStatus = getReviewStatus(quest);
+  const CategoryIcon = categoryIcons[quest.lifeCategory];
+  const categoryColors = lifeCategoryColors[quest.lifeCategory];
 
   return (
     <div className="flex min-h-screen">
@@ -71,6 +90,10 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
                 <Badge>{difficultyLabels[quest.difficulty]}</Badge>
                 <Badge tone="muted">{statusLabels[quest.status]}</Badge>
                 <Badge tone={reviewStatus.tone}>{reviewStatus.label}</Badge>
+                <Badge tone="muted">
+                  <CategoryIcon className={cn("mr-1 h-3 w-3", categoryColors.text)} />
+                  {lifeCategoryLabels[quest.lifeCategory]}
+                </Badge>
               </div>
               <h1 className="text-3xl font-bold">{quest.title}</h1>
               <p className="max-w-3xl text-sm leading-6 text-muted-foreground">

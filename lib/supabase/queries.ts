@@ -8,12 +8,13 @@ import {
   mapSkillProgress,
   mapUserProgress
 } from "@/lib/supabase/mappers";
+import { mapLifeCategoryProgress } from "@/lib/life-category-progress";
 import type { Quest, QuestCriteria, QuestReviewNote, QuestStructuredItem } from "@/lib/types";
 
 export async function getDashboardData(userId: string) {
   const supabase = createClient();
 
-  const [profileResult, progressResult, skillsResult, questsResult] =
+  const [profileResult, progressResult, skillsResult, lifeCategoriesResult, questsResult] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
       supabase
@@ -26,6 +27,11 @@ export async function getDashboardData(userId: string) {
         .select("*")
         .eq("user_id", userId)
         .order("skill_category"),
+      supabase
+        .from("life_category_progress")
+        .select("*")
+        .eq("user_id", userId)
+        .order("category"),
       supabase
         .from("quests")
         .select("*")
@@ -88,6 +94,7 @@ export async function getDashboardData(userId: string) {
     profile: profileResult.data ? mapProfile(profileResult.data) : null,
     progress: progressResult.data ? mapUserProgress(progressResult.data) : null,
     skills: (skillsResult.data ?? []).map(mapSkillProgress),
+    lifeCategories: (lifeCategoriesResult.data ?? []).map(mapLifeCategoryProgress),
     quests: questRows.map((quest) =>
       mapQuest(
         quest,

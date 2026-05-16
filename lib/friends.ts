@@ -6,6 +6,7 @@ import {
   mapStructuredItem,
   mapUserProgress
 } from "@/lib/supabase/mappers";
+import { mapLifeCategoryProgress } from "@/lib/life-category-progress";
 import type {
   FriendshipStatus,
   Profile,
@@ -158,9 +159,14 @@ export async function getFriendProfileData(userId: string, friendId: string) {
     return null;
   }
 
-  const [profileResult, progressResult, questsResult] = await Promise.all([
+  const [profileResult, progressResult, lifeCategoriesResult, questsResult] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", friendId).maybeSingle(),
     supabase.from("user_progress").select("*").eq("user_id", friendId).maybeSingle(),
+    supabase
+      .from("life_category_progress")
+      .select("*")
+      .eq("user_id", friendId)
+      .order("category"),
     supabase
       .from("quests")
       .select("*")
@@ -222,6 +228,7 @@ export async function getFriendProfileData(userId: string, friendId: string) {
   return {
     profile: mapProfile(profileResult.data),
     progress: progressResult.data ? mapUserProgress(progressResult.data) : null,
+    lifeCategories: (lifeCategoriesResult.data ?? []).map(mapLifeCategoryProgress),
     quests
   };
 }

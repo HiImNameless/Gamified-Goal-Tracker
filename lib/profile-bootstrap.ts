@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ensureLifeCategoryProgress } from "@/lib/life-category-progress";
 import type { SkillCategory } from "@/lib/types";
 
 export const STARTER_SKILLS: SkillCategory[] = [
@@ -35,4 +36,6 @@ export async function ensureProgressAndSkills(userId: string) {
       ignoreDuplicates: true
     }
   );
+
+  await ensureLifeCategoryProgress(userId);
 }

@@ -23,19 +23,46 @@ export type SkillCategory =
 
 export type Visibility = "private" | "friends";
 
+export type CriteriaType = "standalone" | "count";
+
+export type QuestStructuredItemType = "reward" | "stake";
+
 export type FriendshipStatus = "pending" | "accepted" | "rejected";
 
 export type ProofStatus = "pending" | "approved" | "rejected";
 
 export type RankName =
-  | "Novice"
-  | "Apprentice"
-  | "Adept"
-  | "Veteran"
-  | "Elite"
-  | "Champion"
-  | "Mythic"
-  | "Ascendant";
+  | "Iron IV"
+  | "Iron III"
+  | "Iron II"
+  | "Iron I"
+  | "Bronze IV"
+  | "Bronze III"
+  | "Bronze II"
+  | "Bronze I"
+  | "Silver IV"
+  | "Silver III"
+  | "Silver II"
+  | "Silver I"
+  | "Gold IV"
+  | "Gold III"
+  | "Gold II"
+  | "Gold I"
+  | "Platinum IV"
+  | "Platinum III"
+  | "Platinum II"
+  | "Platinum I"
+  | "Emerald IV"
+  | "Emerald III"
+  | "Emerald II"
+  | "Emerald I"
+  | "Diamond IV"
+  | "Diamond III"
+  | "Diamond II"
+  | "Diamond I"
+  | "Master"
+  | "Grandmaster"
+  | "Challenger";
 
 export interface Profile {
   id: string;
@@ -73,11 +100,23 @@ export interface QuestCriteria {
   questId: string;
   title: string;
   description?: string;
+  type: CriteriaType;
+  targetCount: number;
+  currentCount: number;
   isCompleted: boolean;
   deadline?: string;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuestStructuredItem {
+  id: string;
+  questId: string;
+  type: QuestStructuredItemType;
+  title: string;
+  description?: string;
+  createdAt: string;
 }
 
 export interface Quest {
@@ -104,6 +143,8 @@ export interface Quest {
   completedAt?: string;
   failedAt?: string;
   criteria: QuestCriteria[];
+  rewards: QuestStructuredItem[];
+  stakes: QuestStructuredItem[];
 }
 
 export interface ProofSubmission {

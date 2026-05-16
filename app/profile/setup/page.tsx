@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ProfileSetupForm } from "@/components/auth/profile-setup-form";
 import { getProfile, requireUser } from "@/lib/auth";
+import { ensureProgressAndSkills } from "@/lib/profile-bootstrap";
 
 export default async function ProfileSetupPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
 
   if (profile) {
+    await ensureProgressAndSkills(user.id);
     redirect("/");
   }
 

@@ -190,6 +190,9 @@ export type Database = {
           quest_id: string;
           title: string;
           description: string | null;
+          type: "standalone" | "count";
+          target_count: number;
+          current_count: number;
           is_completed: boolean;
           deadline: string | null;
           completed_at: string | null;
@@ -201,6 +204,9 @@ export type Database = {
           quest_id: string;
           title: string;
           description?: string | null;
+          type?: "standalone" | "count";
+          target_count?: number;
+          current_count?: number;
           is_completed?: boolean;
           deadline?: string | null;
           completed_at?: string | null;
@@ -208,6 +214,26 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["quest_criteria"]["Insert"]>;
+        Relationships: [];
+      };
+      quest_structured_items: {
+        Row: {
+          id: string;
+          quest_id: string;
+          type: "reward" | "stake";
+          title: string;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          quest_id: string;
+          type: "reward" | "stake";
+          title: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["quest_structured_items"]["Insert"]>;
         Relationships: [];
       };
       proof_submissions: {
@@ -340,6 +366,8 @@ export type Database = {
         | "abandoned"
         | "expired";
       quest_type: "main" | "side" | "boss";
+      quest_criteria_type: "standalone" | "count";
+      quest_structured_item_type: "reward" | "stake";
       skill_category:
         | "health"
         | "fitness"

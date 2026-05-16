@@ -3,10 +3,11 @@ import {
   mapCriteria,
   mapProfile,
   mapQuest,
+  mapStructuredItem,
   mapSkillProgress,
   mapUserProgress
 } from "@/lib/supabase/mappers";
-import type { Quest, QuestCriteria } from "@/lib/types";
+import type { Quest, QuestCriteria, QuestStructuredItem } from "@/lib/types";
 
 export async function getDashboardData(userId: string) {
   const supabase = createClient();
@@ -34,21 +35,38 @@ export async function getDashboardData(userId: string) {
   const questRows = questsResult.data ?? [];
   const questIds = questRows.map((quest) => quest.id);
   let criteriaByQuest = new Map<string, QuestCriteria[]>();
+  let rewardsByQuest = new Map<string, QuestStructuredItem[]>();
+  let stakesByQuest = new Map<string, QuestStructuredItem[]>();
 
   if (questIds.length > 0) {
-    const { data: criteriaRows } = await supabase
-      .from("quest_criteria")
-      .select("*")
-      .in("quest_id", questIds)
-      .order("created_at", { ascending: true });
+    const [criteriaResult, structuredItemsResult] = await Promise.all([
+      supabase
+        .from("quest_criteria")
+        .select("*")
+        .in("quest_id", questIds)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("quest_structured_items")
+        .select("*")
+        .in("quest_id", questIds)
+        .order("created_at", { ascending: true })
+    ]);
 
-    criteriaByQuest = (criteriaRows ?? []).reduce((map, row) => {
+    criteriaByQuest = (criteriaResult.data ?? []).reduce((map, row) => {
       const criteria = mapCriteria(row);
       const existing = map.get(criteria.questId) ?? [];
       existing.push(criteria);
       map.set(criteria.questId, existing);
       return map;
     }, new Map<string, QuestCriteria[]>());
+
+    (structuredItemsResult.data ?? []).forEach((row) => {
+      const item = mapStructuredItem(row);
+      const targetMap = item.type === "reward" ? rewardsByQuest : stakesByQuest;
+      const existing = targetMap.get(item.questId) ?? [];
+      existing.push(item);
+      targetMap.set(item.questId, existing);
+    });
   }
 
   return {
@@ -56,7 +74,12 @@ export async function getDashboardData(userId: string) {
     progress: progressResult.data ? mapUserProgress(progressResult.data) : null,
     skills: (skillsResult.data ?? []).map(mapSkillProgress),
     quests: questRows.map((quest) =>
-      mapQuest(quest, criteriaByQuest.get(quest.id) ?? [])
+      mapQuest(
+        quest,
+        criteriaByQuest.get(quest.id) ?? [],
+        rewardsByQuest.get(quest.id) ?? [],
+        stakesByQuest.get(quest.id) ?? []
+      )
     )
   };
 }
@@ -75,11 +98,25 @@ export async function getQuestForUser(questId: string, userId: string): Promise<
     return null;
   }
 
-  const { data: criteriaRows } = await supabase
-    .from("quest_criteria")
-    .select("*")
-    .eq("quest_id", questId)
-    .order("created_at", { ascending: true });
+  const [criteriaResult, structuredItemsResult] = await Promise.all([
+    supabase
+      .from("quest_criteria")
+      .select("*")
+      .eq("quest_id", questId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("quest_structured_items")
+      .select("*")
+      .eq("quest_id", questId)
+      .order("created_at", { ascending: true })
+  ]);
 
-  return mapQuest(questRow, (criteriaRows ?? []).map(mapCriteria));
+  const structuredItems = (structuredItemsResult.data ?? []).map(mapStructuredItem);
+
+  return mapQuest(
+    questRow,
+    (criteriaResult.data ?? []).map(mapCriteria),
+    structuredItems.filter((item) => item.type === "reward"),
+    structuredItems.filter((item) => item.type === "stake")
+  );
 }

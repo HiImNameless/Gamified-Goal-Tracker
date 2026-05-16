@@ -1,14 +1,52 @@
 import type { QuestDifficulty, RankName } from "@/lib/types";
 
+export const RANK_TIERS = [
+  "Iron",
+  "Bronze",
+  "Silver",
+  "Gold",
+  "Platinum",
+  "Emerald",
+  "Diamond",
+  "Master",
+  "Grandmaster",
+  "Challenger"
+] as const;
+
+export const DIVISIONS = ["IV", "III", "II", "I"] as const;
+
 export const RANKS: RankName[] = [
-  "Novice",
-  "Apprentice",
-  "Adept",
-  "Veteran",
-  "Elite",
-  "Champion",
-  "Mythic",
-  "Ascendant"
+  "Iron IV",
+  "Iron III",
+  "Iron II",
+  "Iron I",
+  "Bronze IV",
+  "Bronze III",
+  "Bronze II",
+  "Bronze I",
+  "Silver IV",
+  "Silver III",
+  "Silver II",
+  "Silver I",
+  "Gold IV",
+  "Gold III",
+  "Gold II",
+  "Gold I",
+  "Platinum IV",
+  "Platinum III",
+  "Platinum II",
+  "Platinum I",
+  "Emerald IV",
+  "Emerald III",
+  "Emerald II",
+  "Emerald I",
+  "Diamond IV",
+  "Diamond III",
+  "Diamond II",
+  "Diamond I",
+  "Master",
+  "Grandmaster",
+  "Challenger"
 ];
 
 export const LP_PER_RANK = 100;
@@ -17,10 +55,10 @@ export const LP_BY_DIFFICULTY: Record<
   QuestDifficulty,
   { reward: number; penalty: number; xp: number }
 > = {
-  easy: { reward: 5, penalty: -2, xp: 20 },
-  medium: { reward: 10, penalty: -5, xp: 45 },
-  hard: { reward: 20, penalty: -10, xp: 85 },
-  boss: { reward: 40, penalty: -20, xp: 180 }
+  easy: { reward: 4, penalty: -8, xp: 20 },
+  medium: { reward: 8, penalty: -16, xp: 45 },
+  hard: { reward: 15, penalty: -30, xp: 85 },
+  boss: { reward: 25, penalty: -50, xp: 180 }
 };
 
 export function getRankName(rankTier: number): RankName {

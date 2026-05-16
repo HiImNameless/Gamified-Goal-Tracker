@@ -5,18 +5,6 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/browser";
-import type { SkillCategory } from "@/lib/types";
-
-const starterSkills: SkillCategory[] = [
-  "health",
-  "fitness",
-  "programming",
-  "editing",
-  "study",
-  "money",
-  "creativity",
-  "discipline"
-];
 
 interface ProfileSetupFormProps {
   userId: string;
@@ -68,7 +56,7 @@ export function ProfileSetupForm({ userId, email }: ProfileSetupFormProps) {
       return;
     }
 
-    const { error: progressError } = await supabase.from("user_progress").insert({
+    const { error: progressError } = await supabase.from("user_progress").upsert({
       user_id: userId
     });
 
@@ -78,11 +66,26 @@ export function ProfileSetupForm({ userId, email }: ProfileSetupFormProps) {
       return;
     }
 
-    const { error: skillsError } = await supabase.from("skill_progress").insert(
+    const starterSkills = [
+      "health",
+      "fitness",
+      "programming",
+      "editing",
+      "study",
+      "money",
+      "creativity",
+      "discipline"
+    ] as const;
+
+    const { error: skillsError } = await supabase.from("skill_progress").upsert(
       starterSkills.map((skillCategory) => ({
         user_id: userId,
         skill_category: skillCategory
-      }))
+      })),
+      {
+        onConflict: "user_id,skill_category",
+        ignoreDuplicates: true
+      }
     );
 
     setIsLoading(false);

@@ -20,8 +20,19 @@ export function DashboardShell({
   quests,
   skills
 }: DashboardShellProps) {
-  const mainQuests = quests.filter((quest) => quest.type === "main");
-  const sideQuests = quests.filter((quest) => quest.type === "side");
+  const activeQuests = quests.filter((quest) =>
+    ["active", "pending_verification"].includes(quest.status)
+  );
+  const completedQuests = quests
+    .filter((quest) => quest.status === "completed")
+    .sort((a, b) => {
+      const aTime = new Date(a.completedAt ?? a.updatedAt).getTime();
+      const bTime = new Date(b.completedAt ?? b.updatedAt).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 4);
+  const mainQuests = activeQuests.filter((quest) => quest.type === "main");
+  const sideQuests = activeQuests.filter((quest) => quest.type === "side");
 
   return (
     <div className="flex min-h-screen">
@@ -40,11 +51,15 @@ export function DashboardShell({
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="rounded-md border border-border bg-secondary/60 p-3">
-                  <div className="text-lg font-bold text-primary">{mainQuests.length}</div>
+                  <div className="text-lg font-bold text-primary">
+                    {activeQuests.filter((quest) => quest.type === "main").length}
+                  </div>
                   <div className="text-muted-foreground">Main</div>
                 </div>
                 <div className="rounded-md border border-border bg-secondary/60 p-3">
-                  <div className="text-lg font-bold text-primary">{sideQuests.length}</div>
+                  <div className="text-lg font-bold text-primary">
+                    {activeQuests.filter((quest) => quest.type === "side").length}
+                  </div>
                   <div className="text-muted-foreground">Side</div>
                 </div>
                 <div className="rounded-md border border-border bg-secondary/60 p-3">
@@ -80,6 +95,22 @@ export function DashboardShell({
                   sideQuests.map((quest) => <QuestCard key={quest.id} quest={quest} />)
                 ) : (
                   <EmptyQuestState label="No side quests yet." />
+                )}
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Recently Completed</h2>
+                <Badge tone="muted">Victory Log</Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {completedQuests.length > 0 ? (
+                  completedQuests.map((quest) => (
+                    <QuestCard key={quest.id} quest={quest} />
+                  ))
+                ) : (
+                  <EmptyQuestState label="No completed quests yet." />
                 )}
               </div>
             </section>

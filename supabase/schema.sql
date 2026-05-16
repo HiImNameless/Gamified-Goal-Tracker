@@ -24,6 +24,8 @@ create type public.skill_category as enum (
 create type public.visibility as enum ('private', 'friends');
 create type public.friendship_status as enum ('pending', 'accepted', 'rejected');
 create type public.proof_status as enum ('pending', 'approved', 'rejected');
+create type public.quest_criteria_type as enum ('standalone', 'count');
+create type public.quest_structured_item_type as enum ('reward', 'stake');
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -48,7 +50,7 @@ create table public.profiles (
 
 create table public.user_progress (
   user_id uuid primary key references public.profiles(id) on delete cascade,
-  rank_tier integer not null default 0 check (rank_tier between 0 and 7),
+  rank_tier integer not null default 0 check (rank_tier between 0 and 30),
   lp integer not null default 0 check (lp >= 0 and lp <= 100),
   total_xp integer not null default 0 check (total_xp >= 0),
   completed_quests integer not null default 0 check (completed_quests >= 0),
@@ -100,11 +102,23 @@ create table public.quest_criteria (
   quest_id uuid not null references public.quests(id) on delete cascade,
   title text not null,
   description text,
+  type public.quest_criteria_type not null default 'standalone',
+  target_count integer not null default 1 check (target_count >= 1),
+  current_count integer not null default 0 check (current_count >= 0),
   is_completed boolean not null default false,
   deadline timestamptz,
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table public.quest_structured_items (
+  id uuid primary key default gen_random_uuid(),
+  quest_id uuid not null references public.quests(id) on delete cascade,
+  type public.quest_structured_item_type not null,
+  title text not null,
+  description text,
+  created_at timestamptz not null default now()
 );
 
 create table public.proof_submissions (
@@ -182,6 +196,7 @@ alter table public.user_progress enable row level security;
 alter table public.friendships enable row level security;
 alter table public.quests enable row level security;
 alter table public.quest_criteria enable row level security;
+alter table public.quest_structured_items enable row level security;
 alter table public.proof_submissions enable row level security;
 alter table public.quest_logs enable row level security;
 alter table public.lp_events enable row level security;
@@ -317,6 +332,57 @@ with check (
   )
 );
 
+create policy "Users can view structured quest items for visible quests"
+on public.quest_structured_items for select
+to authenticated
+using (
+  exists (
+    select 1 from public.quests q
+    where q.id = quest_id
+      and (
+        q.owner_id = auth.uid()
+        or q.verifier_id = auth.uid()
+        or (
+          q.visibility = 'friends'
+          and exists (
+            select 1 from public.friendships f
+            where f.status = 'accepted'
+              and (
+                (f.requester_id = auth.uid() and f.receiver_id = q.owner_id)
+                or (f.receiver_id = auth.uid() and f.requester_id = q.owner_id)
+              )
+          )
+        )
+      )
+  )
+);
+
+create policy "Quest owners can insert structured quest items"
+on public.quest_structured_items for insert
+to authenticated
+with check (
+  exists (
+    select 1 from public.quests q
+    where q.id = quest_id and q.owner_id = auth.uid()
+  )
+);
+
+create policy "Quest owners can update structured quest items"
+on public.quest_structured_items for update
+to authenticated
+using (
+  exists (
+    select 1 from public.quests q
+    where q.id = quest_id and q.owner_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.quests q
+    where q.id = quest_id and q.owner_id = auth.uid()
+  )
+);
+
 create policy "Quest owners and reviewers can view proof"
 on public.proof_submissions for select
 to authenticated
@@ -381,3 +447,43 @@ on public.skill_progress for update
 to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'quest-proofs',
+  'quest-proofs',
+  false,
+  10485760,
+  array[
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+    'text/plain',
+    'text/markdown',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+create policy "Users can upload their own quest proof files"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'quest-proofs'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "Users can view their own quest proof files"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'quest-proofs'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);

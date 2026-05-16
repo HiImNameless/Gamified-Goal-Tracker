@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarClock, CheckCircle2, Circle, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
+import {
+  completeQuestAction,
+  submitProofAction,
+  toggleCriteriaAction
+} from "@/app/quests/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { requireUser } from "@/lib/auth";
 import {
   difficultyLabels,
@@ -30,6 +36,10 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
   }
 
   const progress = getQuestProgress(quest);
+  const canSubmitProof =
+    progress === 100 && quest.proofRequired && quest.status === "active";
+  const canCompleteDirectly =
+    progress === 100 && !quest.proofRequired && quest.status === "active";
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
@@ -79,24 +89,45 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
             </CardHeader>
             <CardContent className="space-y-3">
               {quest.criteria.map((criterion) => (
-                <div
+                <form
                   key={criterion.id}
+                  action={toggleCriteriaAction}
                   className="flex gap-3 rounded-md border border-border bg-secondary/40 p-4"
                 >
+                  <input type="hidden" name="criteria_id" value={criterion.id} />
+                  <input type="hidden" name="quest_id" value={quest.id} />
                   {criterion.isCompleted ? (
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  ) : (
-                    <Circle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-                  )}
-                  <div>
+                    <input type="hidden" name="is_completed" value="on" />
+                  ) : null}
+                  <button
+                    type="submit"
+                    className="mt-0.5 h-5 w-5 shrink-0 text-left"
+                    aria-label={
+                      criterion.isCompleted
+                        ? "Mark criterion incomplete"
+                        : "Mark criterion complete"
+                    }
+                  >
+                    {criterion.isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className="min-w-0">
                     <div className="font-medium">{criterion.title}</div>
+                    {criterion.type === "count" ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {criterion.currentCount}/{criterion.targetCount} completed
+                      </p>
+                    ) : null}
                     {criterion.description ? (
                       <p className="mt-1 text-sm text-muted-foreground">
                         {criterion.description}
                       </p>
                     ) : null}
                   </div>
-                </div>
+                </form>
               ))}
             </CardContent>
           </Card>
@@ -115,14 +146,8 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
                   <div className="text-muted-foreground">LP Penalty</div>
                   <div className="font-semibold text-red-300">{quest.lpPenalty} LP</div>
                 </div>
-                <div className="rounded-md border border-border bg-secondary/40 p-3">
-                  <div className="text-muted-foreground">Reward</div>
-                  <div className="font-semibold">{quest.rewardText ?? "Not set"}</div>
-                </div>
-                <div className="rounded-md border border-border bg-secondary/40 p-3">
-                  <div className="text-muted-foreground">Stake</div>
-                  <div className="font-semibold">{quest.stakeText ?? "Not set"}</div>
-                </div>
+                <StructuredItems label="Rewards" items={quest.rewards} />
+                <StructuredItems label="Stakes" items={quest.stakes} />
               </CardContent>
             </Card>
 
@@ -135,18 +160,94 @@ export default async function QuestDetailPage({ params }: QuestDetailPageProps) 
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <p className="text-muted-foreground">
-                  {quest.proofRequired
-                    ? "Proof is required before LP is awarded."
-                    : "This quest can be completed directly."}
+                  {getVerificationMessage(quest.proofRequired, quest.status, progress)}
                 </p>
-                <Button className="w-full" variant="accent">
-                  Submit Proof
-                </Button>
+                {canSubmitProof ? (
+                  <form className="space-y-3" action={submitProofAction}>
+                    <input type="hidden" name="quest_id" value={quest.id} />
+                    <Textarea
+                      name="proof_text"
+                      placeholder="What did you complete? Add notes for your verifier."
+                    />
+                    <InputFile />
+                    <Button className="w-full" variant="accent" type="submit">
+                      Submit Proof
+                    </Button>
+                  </form>
+                ) : null}
+                {canCompleteDirectly ? (
+                  <form action={completeQuestAction}>
+                    <input type="hidden" name="quest_id" value={quest.id} />
+                    <Button className="w-full" variant="accent" type="submit">
+                      Complete Quest
+                    </Button>
+                  </form>
+                ) : null}
               </CardContent>
             </Card>
           </aside>
         </div>
       </div>
     </main>
+  );
+}
+
+function getVerificationMessage(
+  proofRequired: boolean,
+  status: string,
+  progress: number
+) {
+  if (status === "completed") {
+    return "Quest completed. LP has been awarded.";
+  }
+
+  if (status === "pending_verification") {
+    return "Proof submitted. This quest is waiting for verifier approval.";
+  }
+
+  if (!proofRequired) {
+    return "This quest completes automatically when every criterion is checked.";
+  }
+
+  if (progress === 100) {
+    return "All criteria are complete. Submit proof to move this quest into verification.";
+  }
+
+  return "Proof is required after all criteria are complete.";
+}
+
+function InputFile() {
+  return (
+    <input
+      className="block w-full rounded-md border border-input bg-secondary px-3 py-2 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary-foreground"
+      name="proof_file"
+      type="file"
+      accept="image/*,.pdf,.txt,.md,.doc,.docx"
+    />
+  );
+}
+
+function StructuredItems({
+  label,
+  items
+}: {
+  label: string;
+  items: { id: string; title: string }[];
+}) {
+  return (
+    <div className="rounded-md border border-border bg-secondary/40 p-3">
+      <div className="text-muted-foreground">{label}</div>
+      {items.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {items.map((item) => (
+            <li key={item.id} className="font-semibold">
+              {item.title}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="font-semibold">Not set</div>
+      )}
+    </div>
   );
 }

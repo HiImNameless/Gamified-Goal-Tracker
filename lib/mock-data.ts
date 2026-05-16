@@ -63,6 +63,9 @@ export const mockQuests: Quest[] = [
         questId: "quest-main-portfolio",
         title: "Publish homepage redesign",
         description: "Hero, navigation, and responsive project preview section.",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 1,
         isCompleted: true,
         completedAt: "2026-05-13T18:00:00.000Z",
         createdAt: now,
@@ -73,6 +76,9 @@ export const mockQuests: Quest[] = [
         questId: "quest-main-portfolio",
         title: "Write two case studies",
         description: "One frontend project and one full-stack project.",
+        type: "count",
+        targetCount: 2,
+        currentCount: 0,
         isCompleted: false,
         deadline: "2026-05-24T20:00:00.000Z",
         createdAt: now,
@@ -83,12 +89,17 @@ export const mockQuests: Quest[] = [
         questId: "quest-main-portfolio",
         title: "Deploy and smoke test",
         description: "Production deploy, form test, Lighthouse pass.",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 0,
         isCompleted: false,
         deadline: "2026-05-30T20:00:00.000Z",
         createdAt: now,
         updatedAt: now
       }
-    ]
+    ],
+    rewards: [],
+    stakes: []
   },
   {
     id: "quest-main-sleep",
@@ -117,6 +128,9 @@ export const mockQuests: Quest[] = [
         id: "criterion-sleep-1",
         questId: "quest-main-sleep",
         title: "Bed before 23:30 for five nights",
+        type: "count",
+        targetCount: 5,
+        currentCount: 5,
         isCompleted: true,
         completedAt: "2026-05-15T21:20:00.000Z",
         createdAt: now,
@@ -126,12 +140,17 @@ export const mockQuests: Quest[] = [
         id: "criterion-sleep-2",
         questId: "quest-main-sleep",
         title: "No phone in bed",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 1,
         isCompleted: true,
         completedAt: "2026-05-15T21:20:00.000Z",
         createdAt: now,
         updatedAt: now
       }
-    ]
+    ],
+    rewards: [],
+    stakes: []
   },
   {
     id: "quest-side-gym",
@@ -155,11 +174,16 @@ export const mockQuests: Quest[] = [
         id: "criterion-gym-1",
         questId: "quest-side-gym",
         title: "Finish planned workout",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 0,
         isCompleted: false,
         createdAt: now,
         updatedAt: now
       }
-    ]
+    ],
+    rewards: [],
+    stakes: []
   },
   {
     id: "quest-side-room",
@@ -184,6 +208,9 @@ export const mockQuests: Quest[] = [
         id: "criterion-room-1",
         questId: "quest-side-room",
         title: "Desk clear",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 1,
         isCompleted: true,
         createdAt: now,
         updatedAt: now
@@ -192,11 +219,16 @@ export const mockQuests: Quest[] = [
         id: "criterion-room-2",
         questId: "quest-side-room",
         title: "Laundry done",
+        type: "standalone",
+        targetCount: 1,
+        currentCount: 0,
         isCompleted: false,
         createdAt: now,
         updatedAt: now
       }
-    ]
+    ],
+    rewards: [],
+    stakes: []
   }
 ];
 

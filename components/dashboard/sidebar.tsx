@@ -1,13 +1,14 @@
+import Link from "next/link";
 import { Award, BookOpen, LayoutDashboard, Settings, Swords, Users } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { Profile } from "@/lib/types";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard },
-  { label: "Quests / Journal", icon: BookOpen },
-  { label: "Friends", icon: Users },
-  { label: "Reward Pool", icon: Award },
-  { label: "Settings", icon: Settings }
+  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { label: "Quests / Journal", icon: BookOpen, href: "/" },
+  { label: "Friends", icon: Users, href: "/friends" },
+  { label: "Reward Pool", icon: Award, href: "/" },
+  { label: "Settings", icon: Settings, href: "/" }
 ];
 
 interface SidebarProps {
@@ -31,13 +32,14 @@ export function Sidebar({ profile }: SidebarProps) {
 
       <nav className="mt-6 space-y-1">
         {navItems.map((item) => (
-          <button
+          <Link
             key={item.label}
+            href={item.href}
             className="flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
           >
             <item.icon className="h-4 w-4" />
             {item.label}
-          </button>
+          </Link>
         ))}
       </nav>
 
